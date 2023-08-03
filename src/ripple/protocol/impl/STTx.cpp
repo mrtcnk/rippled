@@ -38,297 +38,301 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <ed25519.h>
+#include <ripple/protocol/impl/secp256k1.h>
+#include <ripple/protocol/digest.h>
 
 namespace ripple {
 
-static auto
-getTxFormat(TxType type)
-{
-    auto format = TxFormats::getInstance().findByType(type);
-
-    if (format == nullptr)
+    static auto
+    getTxFormat(TxType type)
     {
-        Throw<std::runtime_error>(
-            "Invalid transaction type " +
-            std::to_string(safe_cast<std::underlying_type_t<TxType>>(type)));
+        auto format = TxFormats::getInstance().findByType(type);
+
+        if (format == nullptr)
+        {
+            Throw<std::runtime_error>(
+                    "Invalid transaction type " +
+                    std::to_string(safe_cast<std::underlying_type_t<TxType>>(type)));
+        }
+
+        return format;
     }
 
-    return format;
-}
+    STTx::STTx(STObject&& object) : STObject(std::move(object))
+    {
+        tx_type_ = safe_cast<TxType>(getFieldU16(sfTransactionType));
+        applyTemplate(getTxFormat(tx_type_)->getSOTemplate());  //  may throw
+        tid_ = getHash(HashPrefix::transactionID);
+    }
 
-STTx::STTx(STObject&& object) : STObject(std::move(object))
-{
-    tx_type_ = safe_cast<TxType>(getFieldU16(sfTransactionType));
-    applyTemplate(getTxFormat(tx_type_)->getSOTemplate());  //  may throw
-    tid_ = getHash(HashPrefix::transactionID);
-}
+    STTx::STTx(SerialIter& sit) : STObject(sfTransaction)
+    {
+        int length = sit.getBytesLeft();
 
-STTx::STTx(SerialIter& sit) : STObject(sfTransaction)
-{
-    int length = sit.getBytesLeft();
+        if ((length < txMinSizeBytes) || (length > txMaxSizeBytes))
+            Throw<std::runtime_error>("Transaction length invalid");
 
-    if ((length < txMinSizeBytes) || (length > txMaxSizeBytes))
-        Throw<std::runtime_error>("Transaction length invalid");
+        if (set(sit))
+            Throw<std::runtime_error>("Transaction contains an object terminator");
 
-    if (set(sit))
-        Throw<std::runtime_error>("Transaction contains an object terminator");
+        tx_type_ = safe_cast<TxType>(getFieldU16(sfTransactionType));
 
-    tx_type_ = safe_cast<TxType>(getFieldU16(sfTransactionType));
+        applyTemplate(getTxFormat(tx_type_)->getSOTemplate());  // May throw
+        tid_ = getHash(HashPrefix::transactionID);
+    }
 
-    applyTemplate(getTxFormat(tx_type_)->getSOTemplate());  // May throw
-    tid_ = getHash(HashPrefix::transactionID);
-}
+    STTx::STTx(TxType type, std::function<void(STObject&)> assembler)
+            : STObject(sfTransaction)
+    {
+        auto format = getTxFormat(type);
 
-STTx::STTx(TxType type, std::function<void(STObject&)> assembler)
-    : STObject(sfTransaction)
-{
-    auto format = getTxFormat(type);
+        set(format->getSOTemplate());
+        setFieldU16(sfTransactionType, format->getType());
 
-    set(format->getSOTemplate());
-    setFieldU16(sfTransactionType, format->getType());
+        assembler(*this);
 
-    assembler(*this);
+        tx_type_ = safe_cast<TxType>(getFieldU16(sfTransactionType));
 
-    tx_type_ = safe_cast<TxType>(getFieldU16(sfTransactionType));
+        if (tx_type_ != type)
+            LogicError("Transaction type was mutated during assembly");
 
-    if (tx_type_ != type)
-        LogicError("Transaction type was mutated during assembly");
+        tid_ = getHash(HashPrefix::transactionID);
+    }
 
-    tid_ = getHash(HashPrefix::transactionID);
-}
+    STBase*
+    STTx::copy(std::size_t n, void* buf) const
+    {
+        return emplace(n, buf, *this);
+    }
 
-STBase*
-STTx::copy(std::size_t n, void* buf) const
-{
-    return emplace(n, buf, *this);
-}
-
-STBase*
-STTx::move(std::size_t n, void* buf)
-{
-    return emplace(n, buf, std::move(*this));
-}
+    STBase*
+    STTx::move(std::size_t n, void* buf)
+    {
+        return emplace(n, buf, std::move(*this));
+    }
 
 // STObject functions.
-SerializedTypeID
-STTx::getSType() const
-{
-    return STI_TRANSACTION;
-}
-
-std::string
-STTx::getFullText() const
-{
-    std::string ret = "\"";
-    ret += to_string(getTransactionID());
-    ret += "\" = {";
-    ret += STObject::getFullText();
-    ret += "}";
-    return ret;
-}
-
-boost::container::flat_set<AccountID>
-STTx::getMentionedAccounts() const
-{
-    boost::container::flat_set<AccountID> list;
-
-    for (auto const& it : *this)
+    SerializedTypeID
+    STTx::getSType() const
     {
-        if (auto sacc = dynamic_cast<STAccount const*>(&it))
+        return STI_TRANSACTION;
+    }
+
+    std::string
+    STTx::getFullText() const
+    {
+        std::string ret = "\"";
+        ret += to_string(getTransactionID());
+        ret += "\" = {";
+        ret += STObject::getFullText();
+        ret += "}";
+        return ret;
+    }
+
+    boost::container::flat_set<AccountID>
+    STTx::getMentionedAccounts() const
+    {
+        boost::container::flat_set<AccountID> list;
+
+        for (auto const& it : *this)
         {
-            assert(!sacc->isDefault());
-            if (!sacc->isDefault())
-                list.insert(sacc->value());
+            if (auto sacc = dynamic_cast<STAccount const*>(&it))
+            {
+                assert(!sacc->isDefault());
+                if (!sacc->isDefault())
+                    list.insert(sacc->value());
+            }
+            else if (auto samt = dynamic_cast<STAmount const*>(&it))
+            {
+                auto const& issuer = samt->getIssuer();
+                if (!isXRP(issuer))
+                    list.insert(issuer);
+            }
         }
-        else if (auto samt = dynamic_cast<STAmount const*>(&it))
+
+        return list;
+    }
+
+    static Blob
+    getSigningData(STTx const& that)
+    {
+        Serializer s;
+        s.add32(HashPrefix::txSign);
+        that.addWithoutSigningFields(s);
+        return s.getData();
+    }
+
+    uint256
+    STTx::getSigningHash() const
+    {
+        return STObject::getSigningHash(HashPrefix::txSign);
+    }
+
+    Blob
+    STTx::getSignature() const
+    {
+        try
         {
-            auto const& issuer = samt->getIssuer();
-            if (!isXRP(issuer))
-                list.insert(issuer);
+            return getFieldVL(sfTxnSignature);
+        }
+        catch (std::exception const&)
+        {
+            return Blob();
         }
     }
 
-    return list;
-}
-
-static Blob
-getSigningData(STTx const& that)
-{
-    Serializer s;
-    s.add32(HashPrefix::txSign);
-    that.addWithoutSigningFields(s);
-    return s.getData();
-}
-
-uint256
-STTx::getSigningHash() const
-{
-    return STObject::getSigningHash(HashPrefix::txSign);
-}
-
-Blob
-STTx::getSignature() const
-{
-    try
+    SeqProxy
+    STTx::getSeqProxy() const
     {
-        return getFieldVL(sfTxnSignature);
+        std::uint32_t const seq{getFieldU32(sfSequence)};
+        if (seq != 0)
+            return SeqProxy::sequence(seq);
+
+        std::optional<std::uint32_t> const ticketSeq{operator[](~sfTicketSequence)};
+        if (!ticketSeq)
+            // No TicketSequence specified.  Return the Sequence, whatever it is.
+            return SeqProxy::sequence(seq);
+
+        return SeqProxy{SeqProxy::ticket, *ticketSeq};
     }
-    catch (std::exception const&)
+
+    void
+    STTx::sign(PublicKey const& publicKey, SecretKey const& secretKey)
     {
-        return Blob();
+        auto const data = getSigningData(*this);
+
+        auto const sig = ripple::sign(publicKey, secretKey, makeSlice(data));
+
+        setFieldVL(sfTxnSignature, sig);
+        tid_ = getHash(HashPrefix::transactionID);
     }
-}
 
-SeqProxy
-STTx::getSeqProxy() const
-{
-    std::uint32_t const seq{getFieldU32(sfSequence)};
-    if (seq != 0)
-        return SeqProxy::sequence(seq);
-
-    std::optional<std::uint32_t> const ticketSeq{operator[](~sfTicketSequence)};
-    if (!ticketSeq)
-        // No TicketSequence specified.  Return the Sequence, whatever it is.
-        return SeqProxy::sequence(seq);
-
-    return SeqProxy{SeqProxy::ticket, *ticketSeq};
-}
-
-void
-STTx::sign(PublicKey const& publicKey, SecretKey const& secretKey)
-{
-    auto const data = getSigningData(*this);
-
-    auto const sig = ripple::sign(publicKey, secretKey, makeSlice(data));
-
-    setFieldVL(sfTxnSignature, sig);
-    tid_ = getHash(HashPrefix::transactionID);
-}
-
-Expected<void, std::string>
-STTx::checkSign(
-    RequireFullyCanonicalSig requireCanonicalSig,
-    Rules const& rules) const
-{
-    try
+    Expected<void, std::string>
+    STTx::checkSign(
+            RequireFullyCanonicalSig requireCanonicalSig,
+            Rules const& rules) const
     {
-        // Determine whether we're single- or multi-signing by looking
-        // at the SigningPubKey.  If it's empty we must be
-        // multi-signing.  Otherwise we're single-signing.
-        Blob const& signingPubKey = getFieldVL(sfSigningPubKey);
-        return signingPubKey.empty()
-            ? checkMultiSign(requireCanonicalSig, rules)
-            : checkSingleSign(requireCanonicalSig);
+        try
+        {
+            // Determine whether we're single- or multi-signing by looking
+            // at the SigningPubKey.  If it's empty we must be
+            // multi-signing.  Otherwise we're single-signing.
+            Blob const& signingPubKey = getFieldVL(sfSigningPubKey);
+            return signingPubKey.empty()
+                   ? checkMultiSign(requireCanonicalSig, rules)
+                   : checkSingleSign(requireCanonicalSig);
+        }
+        catch (std::exception const&)
+        {
+        }
+        return Unexpected("Internal signature check failure.");
     }
-    catch (std::exception const&)
-    {
-    }
-    return Unexpected("Internal signature check failure.");
-}
 
-Json::Value STTx::getJson(JsonOptions) const
-{
-    Json::Value ret = STObject::getJson(JsonOptions::none);
-    ret[jss::hash] = to_string(getTransactionID());
-    return ret;
-}
-
-Json::Value
-STTx::getJson(JsonOptions options, bool binary) const
-{
-    if (binary)
+    Json::Value STTx::getJson(JsonOptions) const
     {
-        Json::Value ret;
-        Serializer s = STObject::getSerializer();
-        ret[jss::tx] = strHex(s.peekData());
+        Json::Value ret = STObject::getJson(JsonOptions::none);
         ret[jss::hash] = to_string(getTransactionID());
         return ret;
     }
-    return getJson(options);
-}
 
-std::string const&
-STTx::getMetaSQLInsertReplaceHeader()
-{
-    static std::string const sql =
-        "INSERT OR REPLACE INTO Transactions "
-        "(TransID, TransType, FromAcct, FromSeq, LedgerSeq, Status, RawTxn, "
-        "TxnMeta)"
-        " VALUES ";
+    Json::Value
+    STTx::getJson(JsonOptions options, bool binary) const
+    {
+        if (binary)
+        {
+            Json::Value ret;
+            Serializer s = STObject::getSerializer();
+            ret[jss::tx] = strHex(s.peekData());
+            ret[jss::hash] = to_string(getTransactionID());
+            return ret;
+        }
+        return getJson(options);
+    }
 
-    return sql;
-}
+    std::string const&
+    STTx::getMetaSQLInsertReplaceHeader()
+    {
+        static std::string const sql =
+                "INSERT OR REPLACE INTO Transactions "
+                "(TransID, TransType, FromAcct, FromSeq, LedgerSeq, Status, RawTxn, "
+                "TxnMeta)"
+                " VALUES ";
 
-std::string
-STTx::getMetaSQL(std::uint32_t inLedger, std::string const& escapedMetaData)
+        return sql;
+    }
+
+    std::string
+    STTx::getMetaSQL(std::uint32_t inLedger, std::string const& escapedMetaData)
     const
-{
-    Serializer s;
-    add(s);
-    return getMetaSQL(s, inLedger, txnSqlValidated, escapedMetaData);
-}
+    {
+        Serializer s;
+        add(s);
+        return getMetaSQL(s, inLedger, txnSqlValidated, escapedMetaData);
+    }
 
 // VFALCO This could be a free function elsewhere
-std::string
-STTx::getMetaSQL(
-    Serializer rawTxn,
-    std::uint32_t inLedger,
-    char status,
-    std::string const& escapedMetaData) const
-{
-    static boost::format bfTrans(
-        "('%s', '%s', '%s', '%d', '%d', '%c', %s, %s)");
-    std::string rTxn = sqlBlobLiteral(rawTxn.peekData());
-
-    auto format = TxFormats::getInstance().findByType(tx_type_);
-    assert(format != nullptr);
-
-    return str(
-        boost::format(bfTrans) % to_string(getTransactionID()) %
-        format->getName() % toBase58(getAccountID(sfAccount)) %
-        getFieldU32(sfSequence) % inLedger % status % rTxn % escapedMetaData);
-}
-
-Expected<void, std::string>
-STTx::checkSingleSign(RequireFullyCanonicalSig requireCanonicalSig) const
-{
-    // We don't allow both a non-empty sfSigningPubKey and an sfSigners.
-    // That would allow the transaction to be signed two ways.  So if both
-    // fields are present the signature is invalid.
-    if (isFieldPresent(sfSigners))
-        return Unexpected("Cannot both single- and multi-sign.");
-
-    bool validSig = false;
-    try
+    std::string
+    STTx::getMetaSQL(
+            Serializer rawTxn,
+            std::uint32_t inLedger,
+            char status,
+            std::string const& escapedMetaData) const
     {
-        bool const fullyCanonical = (getFlags() & tfFullyCanonicalSig) ||
-            (requireCanonicalSig == RequireFullyCanonicalSig::yes);
+        static boost::format bfTrans(
+                "('%s', '%s', '%s', '%d', '%d', '%c', %s, %s)");
+        std::string rTxn = sqlBlobLiteral(rawTxn.peekData());
 
-        auto const spk = getFieldVL(sfSigningPubKey);
+        auto format = TxFormats::getInstance().findByType(tx_type_);
+        assert(format != nullptr);
 
-        if (publicKeyType(makeSlice(spk)))
+        return str(
+                boost::format(bfTrans) % to_string(getTransactionID()) %
+                format->getName() % toBase58(getAccountID(sfAccount)) %
+                getFieldU32(sfSequence) % inLedger % status % rTxn % escapedMetaData);
+    }
+
+    Expected<void, std::string>
+    STTx::checkSingleSign(RequireFullyCanonicalSig requireCanonicalSig) const
+    {
+        // We don't allow both a non-empty sfSigningPubKey and an sfSigners.
+        // That would allow the transaction to be signed two ways.  So if both
+        // fields are present the signature is invalid.
+        if (isFieldPresent(sfSigners))
+            return Unexpected("Cannot both single- and multi-sign.");
+
+        bool validSig = false;
+        try
         {
-            Blob const signature = getFieldVL(sfTxnSignature);
-            Blob const data = getSigningData(*this);
+            bool const fullyCanonical = (getFlags() & tfFullyCanonicalSig) ||
+                                        (requireCanonicalSig == RequireFullyCanonicalSig::yes);
 
-            validSig = verify(
-                PublicKey(makeSlice(spk)),
-                makeSlice(data),
-                makeSlice(signature),
-                fullyCanonical);
+            auto const spk = getFieldVL(sfSigningPubKey);
+
+            if (publicKeyType(makeSlice(spk)))
+            {
+                Blob const signature = getFieldVL(sfTxnSignature);
+                Blob const data = getSigningData(*this);
+
+                validSig = verify(
+                        PublicKey(makeSlice(spk)),
+                        makeSlice(data),
+                        makeSlice(signature),
+                        fullyCanonical);
+            }
         }
+        catch (std::exception const&)
+        {
+            // Assume it was a signature failure.
+            validSig = false;
+        }
+        if (validSig == false)
+            return Unexpected("Invalid signature.");
+        // Signature was verified.
+        return {};
     }
-    catch (std::exception const&)
-    {
-        // Assume it was a signature failure.
-        validSig = false;
-    }
-    if (validSig == false)
-        return Unexpected("Invalid signature.");
-    // Signature was verified.
-    return {};
-}
 
+/*
 Expected<void, std::string>
 STTx::checkMultiSign(
     RequireFullyCanonicalSig requireCanonicalSig,
@@ -418,151 +422,322 @@ STTx::checkMultiSign(
     // All signatures verified.
     return {};
 }
+*/
+
+//New checkMultiSign
+//At the line 333 of STTx.cpp
+    Expected<void, std::string>
+    STTx::checkMultiSign(
+            RequireFullyCanonicalSig requireCanonicalSig,
+            Rules const& rules) const
+    {
+        // Make sure the MultiSigners are present.  Otherwise they are not
+        // attempting multi-signing and we just have a bad SigningPubKey.
+        if (!isFieldPresent(sfSigners))
+            return Unexpected("Empty SigningPubKey.");
+        // We don't allow both an sfSigners and an sfTxnSignature.  Both fields
+        // being present would indicate that the transaction is signed both ways.
+        if (isFieldPresent(sfTxnSignature))
+            return Unexpected("Cannot both single- and multi-sign.");
+        STArray const& signers{getFieldArray(sfSigners)};
+        // There are well known bounds that the number of signers must be within.
+        if (signers.size() < minMultiSigners ||
+            signers.size() > maxMultiSigners(&rules))
+            return Unexpected("Invalid Signers array size.");
+        // We can ease the computational load inside the loop a bit by
+        // pre-constructing part of the data that we hash.  Fill a Serializer
+        // with the stuff that stays constant from signature to signature.
+        Serializer const dataStart{startMultiSigningData(*this)};
+        // We also use the sfAccount field inside the loop.  Get it once.
+        auto const txnAccountID = getAccountID(sfAccount);
+        // Determine whether signatures must be full canonical.
+        bool const fullyCanonical = (getFlags() & tfFullyCanonicalSig) ||
+                                    (requireCanonicalSig == RequireFullyCanonicalSig::yes);
+        // Signers must be in sorted order by AccountID.
+        AccountID lastAccountID(beast::zero);
+        //MC: Modifications start here
+        //MC: The vectors for Edwards curves are defined.
+        //vector <PublicKey> pksEd;
+        //vector <Slice> messagesEd;
+        //vector <Slice> signaturesEd;
+        //vector <bool> mustBeFullyCanonicalEd;
+
+        std::vector <unsigned char const*> pksEd;
+        //std::vector <unsigned char*> pksEd;
+        //std::vector <unsigned char*> messagesEd;
+        std::vector <unsigned char const*> messagesEd;
+        std::vector <size_t> messagesSizes;
+
+        //std::vector <unsigned char*> signaturesEd;
+        std::vector <unsigned char const*> signaturesEd;
+        std::vector <int> mustBeFullyCanonicalEd;
+        //vector <int> mustBeFullyCanonicalEd;
+        std::vector <Blob> realPksEd;
+        std::vector <Serializer> realMessagesEd;
+        std::vector <Blob> realSignaturesEd;
+
+        int tempcount = 0;
+        for (auto const& signer : signers)
+        {
+            std::cout << "The counter is " << ++tempcount << std::endl;
+            auto const accountID = signer.getAccountID(sfAccount);
+            // The account owner may not multisign for themselves.
+            if (accountID == txnAccountID)
+                return Unexpected("Invalid multisigner.");
+            // No duplicate signers allowed.
+            if (lastAccountID == accountID)
+                return Unexpected("Duplicate Signers not allowed.");
+            // Accounts must be in order by account ID.  No duplicates allowed.
+            if (lastAccountID > accountID)
+                return Unexpected("Unsorted Signers array.");
+            // The next signature must be greater than this one.
+            lastAccountID = accountID;
+            // Verify the signature.
+            bool validSig = false;
+            try
+            {
+                Serializer s = dataStart;
+                finishMultiSigningData(accountID, s);
+                Blob spk = signer.getFieldVL(sfSigningPubKey);
+                if (publicKeyType(makeSlice(spk)))
+                {
+                    Blob const signature = signer.getFieldVL(sfTxnSignature);
+                    //MC: Some modifications are here
+                    //MC: If the type is secp256k1, directly call the verifyDigest
+                    if (auto const type = publicKeyType(makeSlice(spk)))
+                    {
+                        if (*type == KeyType::secp256k1)
+                        {
+                            validSig = 0;
+                            //validSig = verifyDigest(spk, sha512Half(s.slice()), signature, fullyCanonical);
+                            validSig = verify(
+                                    PublicKey(makeSlice(spk)),
+                                    s.slice(),
+                                    makeSlice(signature),
+                                    fullyCanonical);
+
+                            std::cout << "The value of secp256k1 validSig is " << validSig << std::endl;
+
+                        }
+                            //MC: If the type is Ed25519, then include it to the vector
+                            //MC: including the Ed curves that will be sent to batch function later.
+                        else if (*type == KeyType::ed25519)
+                        {
+                            //if (!ed25519Canonical(signature))
+                            //  validSig = false;
+                            realPksEd.push_back(spk);
+                            realMessagesEd.push_back(s);
+                            realSignaturesEd.push_back(signature);
+                        }
+                        /*
+                         validSig = verify(
+                         PublicKey(makeSlice(spk)),
+                         s.slice(),
+                         makeSlice(signature),
+                         fullyCanonical);
+                        */
+                    }
+                }
+            }
+            catch (std::exception const&)
+            {
+                // We assume any problem lies with the signature.
+                validSig = false;
+            }
+            if (!validSig)
+                return Unexpected(
+                        std::string("Invalid signature on account ") +
+                        toBase58(accountID) + ".");
+        }
+        //MC: Now, we will check the Edwards curves all together using
+        //MD: the batch verification function.
+        int validSig = 0;
+        try
+        {
+            if(1)
+            {
+                //vector <unsigned char*> pksEd;
+                //vector <unsigned char*> messagesEd;
+                //vector <size_t> messagesSizes;
+                //vector <unsigned char*> signaturesEd;
+                std::vector <int> valid(realPksEd.size());
+                /* The use of batch verification from its readme file is the following:
+                int ed25519_sign_open_batch(const unsigned char **m, size_t *mlen, const unsigned char **pk, const unsigned char **RS, size_t num, int *valid)
+                const unsigned char *mp[num] = {message1, message2..}
+                size_t ml[num] = {message_len1, message_len2..}
+                const unsigned char *pkp[num] = {pk1, pk2..}
+                const unsigned char *sigp[num] = {signature1, signature2..}
+                int valid[num]
+                */
+                for (size_t i = 0; i < realPksEd.size(); ++i)
+                {
+                    pksEd.push_back(realPksEd[i].data() + 1);
+                    //messagesEd.push_back(realMessagesEd[i].data());
+                    messagesEd.push_back(realMessagesEd[i].peekData().data());
+                    messagesSizes.push_back(realMessagesEd[i].size());
+                    signaturesEd.push_back(realSignaturesEd[i].data());
+                }
+
+                validSig = ed25519_sign_open_batch(messagesEd.data(), messagesSizes.data(), pksEd.data(), signaturesEd.data(), realPksEd.size(), valid.data())  == 0;
+                std::cout << "Batch verification of Ed25519 signatures: validSig is " << validSig << std::endl;
+
+            }
+        }
+        catch (std::exception const&)
+        {
+            //MC: We assume any problem lies with the Ed25519 signature verification
+            validSig = 0;
+        }
+        // All signatures verified.
+        return {};
+    }
+
+
 
 //------------------------------------------------------------------------------
 
-static bool
-isMemoOkay(STObject const& st, std::string& reason)
-{
-    if (!st.isFieldPresent(sfMemos))
-        return true;
-
-    auto const& memos = st.getFieldArray(sfMemos);
-
-    // The number 2048 is a preallocation hint, not a hard limit
-    // to avoid allocate/copy/free's
-    Serializer s(2048);
-    memos.add(s);
-
-    // FIXME move the memo limit into a config tunable
-    if (s.getDataLength() > 1024)
+    static bool
+    isMemoOkay(STObject const& st, std::string& reason)
     {
-        reason = "The memo exceeds the maximum allowed size.";
-        return false;
-    }
+        if (!st.isFieldPresent(sfMemos))
+            return true;
 
-    for (auto const& memo : memos)
-    {
-        auto memoObj = dynamic_cast<STObject const*>(&memo);
+        auto const& memos = st.getFieldArray(sfMemos);
 
-        if (!memoObj || (memoObj->getFName() != sfMemo))
+        // The number 2048 is a preallocation hint, not a hard limit
+        // to avoid allocate/copy/free's
+        Serializer s(2048);
+        memos.add(s);
+
+        // FIXME move the memo limit into a config tunable
+        if (s.getDataLength() > 1024)
         {
-            reason = "A memo array may contain only Memo objects.";
+            reason = "The memo exceeds the maximum allowed size.";
             return false;
         }
 
-        for (auto const& memoElement : *memoObj)
+        for (auto const& memo : memos)
         {
-            auto const& name = memoElement.getFName();
+            auto memoObj = dynamic_cast<STObject const*>(&memo);
 
-            if (name != sfMemoType && name != sfMemoData &&
-                name != sfMemoFormat)
+            if (!memoObj || (memoObj->getFName() != sfMemo))
             {
-                reason =
-                    "A memo may contain only MemoType, MemoData or "
-                    "MemoFormat fields.";
+                reason = "A memo array may contain only Memo objects.";
                 return false;
             }
 
-            // The raw data is stored as hex-octets, which we want to decode.
-            auto optData = strUnHex(memoElement.getText());
-
-            if (!optData)
+            for (auto const& memoElement : *memoObj)
             {
-                reason =
-                    "The MemoType, MemoData and MemoFormat fields may "
-                    "only contain hex-encoded data.";
-                return false;
-            }
+                auto const& name = memoElement.getFName();
 
-            if (name == sfMemoData)
-                continue;
-
-            // The only allowed characters for MemoType and MemoFormat are the
-            // characters allowed in URLs per RFC 3986: alphanumerics and the
-            // following symbols: -._~:/?#[]@!$&'()*+,;=%
-            static constexpr std::array<char, 256> const allowedSymbols = []() {
-                std::array<char, 256> a{};
-
-                std::string_view symbols(
-                    "0123456789"
-                    "-._~:/?#[]@!$&'()*+,;=%"
-                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                    "abcdefghijklmnopqrstuvwxyz");
-
-                for (char c : symbols)
-                    a[c] = 1;
-                return a;
-            }();
-
-            for (auto c : *optData)
-            {
-                if (!allowedSymbols[c])
+                if (name != sfMemoType && name != sfMemoData &&
+                    name != sfMemoFormat)
                 {
                     reason =
-                        "The MemoType and MemoFormat fields may only "
-                        "contain characters that are allowed in URLs "
-                        "under RFC 3986.";
+                            "A memo may contain only MemoType, MemoData or "
+                            "MemoFormat fields.";
                     return false;
+                }
+
+                // The raw data is stored as hex-octets, which we want to decode.
+                auto optData = strUnHex(memoElement.getText());
+
+                if (!optData)
+                {
+                    reason =
+                            "The MemoType, MemoData and MemoFormat fields may "
+                            "only contain hex-encoded data.";
+                    return false;
+                }
+
+                if (name == sfMemoData)
+                    continue;
+
+                // The only allowed characters for MemoType and MemoFormat are the
+                // characters allowed in URLs per RFC 3986: alphanumerics and the
+                // following symbols: -._~:/?#[]@!$&'()*+,;=%
+                static constexpr std::array<char, 256> const allowedSymbols = []() {
+                    std::array<char, 256> a{};
+
+                    std::string_view symbols(
+                            "0123456789"
+                            "-._~:/?#[]@!$&'()*+,;=%"
+                            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                            "abcdefghijklmnopqrstuvwxyz");
+
+                    for (char c : symbols)
+                        a[c] = 1;
+                    return a;
+                }();
+
+                for (auto c : *optData)
+                {
+                    if (!allowedSymbols[c])
+                    {
+                        reason =
+                                "The MemoType and MemoFormat fields may only "
+                                "contain characters that are allowed in URLs "
+                                "under RFC 3986.";
+                        return false;
+                    }
                 }
             }
         }
-    }
 
-    return true;
-}
+        return true;
+    }
 
 // Ensure all account fields are 160-bits
-static bool
-isAccountFieldOkay(STObject const& st)
-{
-    for (int i = 0; i < st.getCount(); ++i)
+    static bool
+    isAccountFieldOkay(STObject const& st)
     {
-        auto t = dynamic_cast<STAccount const*>(st.peekAtPIndex(i));
-        if (t && t->isDefault())
+        for (int i = 0; i < st.getCount(); ++i)
+        {
+            auto t = dynamic_cast<STAccount const*>(st.peekAtPIndex(i));
+            if (t && t->isDefault())
+                return false;
+        }
+
+        return true;
+    }
+
+    bool
+    passesLocalChecks(STObject const& st, std::string& reason)
+    {
+        if (!isMemoOkay(st, reason))
             return false;
+
+        if (!isAccountFieldOkay(st))
+        {
+            reason = "An account field is invalid.";
+            return false;
+        }
+
+        if (isPseudoTx(st))
+        {
+            reason = "Cannot submit pseudo transactions.";
+            return false;
+        }
+        return true;
     }
 
-    return true;
-}
-
-bool
-passesLocalChecks(STObject const& st, std::string& reason)
-{
-    if (!isMemoOkay(st, reason))
-        return false;
-
-    if (!isAccountFieldOkay(st))
+    std::shared_ptr<STTx const>
+    sterilize(STTx const& stx)
     {
-        reason = "An account field is invalid.";
-        return false;
+        Serializer s;
+        stx.add(s);
+        SerialIter sit(s.slice());
+        return std::make_shared<STTx const>(std::ref(sit));
     }
 
-    if (isPseudoTx(st))
+    bool
+    isPseudoTx(STObject const& tx)
     {
-        reason = "Cannot submit pseudo transactions.";
-        return false;
+        auto t = tx[~sfTransactionType];
+        if (!t)
+            return false;
+        auto tt = safe_cast<TxType>(*t);
+        return tt == ttAMENDMENT || tt == ttFEE || tt == ttUNL_MODIFY;
     }
-    return true;
-}
-
-std::shared_ptr<STTx const>
-sterilize(STTx const& stx)
-{
-    Serializer s;
-    stx.add(s);
-    SerialIter sit(s.slice());
-    return std::make_shared<STTx const>(std::ref(sit));
-}
-
-bool
-isPseudoTx(STObject const& tx)
-{
-    auto t = tx[~sfTransactionType];
-    if (!t)
-        return false;
-    auto tt = safe_cast<TxType>(*t);
-    return tt == ttAMENDMENT || tt == ttFEE || tt == ttUNL_MODIFY;
-}
 
 }  // namespace ripple
