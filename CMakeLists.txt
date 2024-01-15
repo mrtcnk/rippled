@@ -11,6 +11,14 @@ endif()
 file(TO_CMAKE_PATH "${CMAKE_MODULE_PATH}" CMAKE_MODULE_PATH)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/Builds/CMake")
 
+include(FetchContent)
+cmake_policy(SET CMP0135 NEW)
+FetchContent_Populate(
+  ed25519
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/ed25519-donna
+  URL ${CMAKE_CURRENT_SOURCE_DIR}/src/ed25519-donna.orig
+)
+
 project(rippled)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 20)

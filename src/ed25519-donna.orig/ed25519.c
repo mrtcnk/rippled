@@ -20,28 +20,8 @@
 #include "ed25519-hash.h"
 
 /*
- * MC: Checks if it is identity or not
- */
-unsigned char batch_point_buffer[3][32];
-
-static int
-ge25519_is_neutral_vartime2(const ge25519 *p) {
-    static const unsigned char zero[32] = {0};
-    unsigned char point_buffer[3][32];
-    curve25519_contract(point_buffer[0], p->x);
-    curve25519_contract(point_buffer[1], p->y);
-    curve25519_contract(point_buffer[2], p->z);
-    memcpy(batch_point_buffer[1], point_buffer[1], 32);
-    return (memcmp(point_buffer[0], zero, 32) == 0) && (memcmp(point_buffer[1], point_buffer[2], 32) == 0);
-}
-
-/*
 	Generates a (extsk[0..31]) and aExt (extsk[32..63])
 */
-
-
-
-
 
 DONNA_INLINE static void
 ed25519_extsk(hash_512bits extsk, const ed25519_secret_key sk) {
@@ -109,33 +89,9 @@ ED25519_FN(ed25519_sign) (const unsigned char *m, size_t mlen, const ed25519_sec
 	/* S = (r + H(R,A,m)a) mod L */	
 	contract256_modm(RS + 32, S);
 }
+
 int
 ED25519_FN(ed25519_sign_open) (const unsigned char *m, size_t mlen, const ed25519_public_key pk, const ed25519_signature RS) {
-    ge25519 ALIGN(16) R, A;
-    hash_512bits hash;
-    bignum256modm hram, S;
-    unsigned char checkR[32];
-
-    if ((RS[63] & 224) || !ge25519_unpack_negative_vartime(&A, pk))
-        return -1;
-
-    /* hram = H(R,A,m) */
-    ed25519_hram(hash, RS, pk, m, mlen);
-    expand256_modm(hram, hash, 64);
-
-    /* S */
-    expand256_modm(S, RS + 32, 32);
-
-    /* SB - H(R,A,m)A */
-    ge25519_double_scalarmult_vartime(&R, &A, hram, S);
-    ge25519_pack(checkR, &R);
-
-    /* check that R = SB - H(R,A,m)A */
-    return ed25519_verify(RS, checkR, 32) ? 0 : -1;
-}
-
-int
-ED25519_FN(ed25519_sign_open_cofactored) (const unsigned char *m, size_t mlen, const ed25519_public_key pk, const ed25519_signature RS) {
 	ge25519 ALIGN(16) R, A;
 	hash_512bits hash;
 	bignum256modm hram, S;
@@ -153,38 +109,14 @@ ED25519_FN(ed25519_sign_open_cofactored) (const unsigned char *m, size_t mlen, c
 
 	/* SB - H(R,A,m)A */
 	ge25519_double_scalarmult_vartime(&R, &A, hram, S);
+	ge25519_pack(checkR, &R);
 
-    ge25519_pack(checkR, &R);
-
-    ge25519_unpack_negative_vartime(&R, checkR);
-
-    unsigned char Rprime[32];
-    for (int i = 0; i < 32; i++) {
-        Rprime[i] = RS[i];
-    }
-    ge25519 Rprimepoint;
-    ge25519_unpack_negative_vartime(&Rprimepoint, Rprime);
-    ge25519 Rprimepointneg;
-
-    curve25519_neg(Rprimepointneg.x, Rprimepoint.x);
-    curve25519_copy(Rprimepointneg.y, Rprimepoint.y);
-    curve25519_neg(Rprimepointneg.t, Rprimepoint.t);
-    curve25519_copy(Rprimepointneg.z, Rprimepoint.z);
-
-    ge25519 result, result1, result2, result3;
-    // result = R - sB - H(R,A,m)A
-    ge25519_add(&result,&R,&Rprimepointneg);
-
-    ge25519_double(&result1,&result);
-    ge25519_double(&result2,&result1);
-    ge25519_double(&result3,&result2);
-
-    return ge25519_is_neutral_vartime2(&result3) ? 0 : -1;
-
+	/* check that R = SB - H(R,A,m)A */
+	return ed25519_verify(RS, checkR, 32) ? 0 : -1;
 }
 
-
 #include "ed25519-donna-batchverify.h"
+
 /*
 	Fast Curve25519 basepoint scalar multiplication
 */

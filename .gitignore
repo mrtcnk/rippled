@@ -1,5 +1,8 @@
 # .gitignore
 
+# Generated sources
+src/ed25519-donna
+
 bin/boostbook_catalog.xml
 bin/config.log
 bin/project-cache.jam
