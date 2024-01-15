@@ -291,9 +291,8 @@ verify(
             // byte to distinguish them from secp256k1 keys
             // so when verifying the signature, we need to
             // first strip that prefix.
-            return ed25519_sign_open(
-                       m.data(), m.size(), publicKey.data() + 1, sig.data()) ==
-                0;
+            return ed25519_sign_open_cofactored(
+                       m.data(), m.size(), publicKey.data() + 1, sig.data()) == 0;
         }
     }
     return false;
