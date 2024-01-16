@@ -15,9 +15,14 @@ include(FetchContent)
 cmake_policy(SET CMP0135 NEW)
 FetchContent_Populate(
   ed25519
-  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/ed25519-donna
   URL ${CMAKE_CURRENT_SOURCE_DIR}/src/ed25519-donna.orig
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/ed25519-donna
+  # `git apply` only works in the root directory.
+  # https://github.com/cweagans/composer-patches/pull/296#issuecomment-647074418
+  PATCH_COMMAND ${CMAKE_COMMAND} -E chdir ../.. git apply -p1 ${CMAKE_CURRENT_SOURCE_DIR}/src/ed25519-donna.patch
 )
+# When you are done editing ed25519-donna, regenerate the patch like this:
+# git diff -U0 src/ed25519-donna.orig src/ed25519-donna >src/ed25519-donna.patch
 
 project(rippled)
 set(CMAKE_CXX_EXTENSIONS OFF)
