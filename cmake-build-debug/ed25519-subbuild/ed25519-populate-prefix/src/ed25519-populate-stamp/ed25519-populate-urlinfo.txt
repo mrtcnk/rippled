@@ -1,0 +1,11 @@
+# This is a generated file and its contents are an internal implementation detail.
+# The download step will be re-executed if anything in this file changes.
+# No other meaning or use of this file is supported.
+
+method=url
+command=/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake;-E;rm;-rf;/Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src/ed25519-donna;COMMAND;/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake;-E;copy_directory;/Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src/ed25519-donna.orig;/Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src/ed25519-donna
+source_dir=/Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src/ed25519-donna
+work_dir=/Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src
+url(s)=/Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src/ed25519-donna.orig
+hash=
+

@@ -1,42 +1,20 @@
-diff --git a/src/ed25519-donna/ed25519-donna-batchverify.h b/src/ed25519-donna/ed25519-donna-batchverify.h
-index 43c4923b3e..67c1a8e294 100644
---- a/src/ed25519-donna/ed25519-donna-batchverify.h
-+++ b/src/ed25519-donna/ed25519-donna-batchverify.h
-@@ -105,7 +105,8 @@ heap_get_top2(batch_heap *heap, heap_index_t *max1, heap_index_t *max2, size_t l
- /* */
- static void
- ge25519_multi_scalarmult_vartime_final(ge25519 *r, ge25519 *point, bignum256modm scalar) {
+diff -U0 src/ed25519-donna.orig/ed25519-donna-batchverify.h src/ed25519-donna/ed25519-donna-batchverify.h
+--- src/ed25519-donna.orig/ed25519-donna-batchverify.h	2024-01-17 11:01:01
++++ src/ed25519-donna/ed25519-donna-batchverify.h	2024-01-25 14:18:39
+@@ -108 +108,2 @@
 -	const bignum256modm_element_t topbit = ((bignum256modm_element_t)1 << (bignum256modm_bits_per_limb - 1));
 +
 +    const bignum256modm_element_t topbit = ((bignum256modm_element_t)1 << (bignum256modm_bits_per_limb - 1));
- 	size_t limb = limb128bits;
- 	bignum256modm_element_t flag;
- 
-@@ -144,7 +145,11 @@ ge25519_multi_scalarmult_vartime_final(ge25519 *r, ge25519 *point, bignum256modm
- 				break;
- 			flag = topbit;
- 		}
+@@ -147 +148,5 @@
 -	}
 +
 +
 +    }
 +
 +
- }
- 
- /* count must be >= 5 */
-@@ -185,6 +190,7 @@ ge25519_multi_scalarmult_vartime(ge25519 *r, batch_heap *heap, size_t count) {
- 	}
- 
- 	ge25519_multi_scalarmult_vartime_final(r, &heap->points[max1], heap->scalars[max1]);
+@@ -187,0 +193 @@
 +
- }
- 
- /* not actually used for anything other than testing */
-@@ -203,7 +209,80 @@ ge25519_is_neutral_vartime(const ge25519 *p) {
- 
- int
- ED25519_FN(ed25519_sign_open_batch) (const unsigned char **m, size_t *mlen, const unsigned char **pk, const unsigned char **RS, size_t num, int *valid) {
+@@ -206 +212,74 @@
 -	batch_heap ALIGN(16) batch;
 +    batch_heap ALIGN(16) batch;
 +    ge25519 ALIGN(16) p;
@@ -112,80 +90,84 @@ index 43c4923b3e..67c1a8e294 100644
 +ED25519_FN(ed25519_sign_open_batch_cofactored) (const unsigned char **m, size_t *mlen, const unsigned char **pk, const unsigned char **RS, size_t num, int *valid) {
 +
 +    batch_heap ALIGN(16) batch;
- 	ge25519 ALIGN(16) p;
- 	bignum256modm *r_scalars;
- 	size_t i, batchsize;
-@@ -247,12 +326,27 @@ ED25519_FN(ed25519_sign_open_batch) (const unsigned char **m, size_t *mlen, cons
- 				goto fallback;
- 
- 		ge25519_multi_scalarmult_vartime(&p, &batch, (batchsize * 2) + 1);
+@@ -250 +329,8 @@
 -		if (!ge25519_is_neutral_vartime(&p)) {
 +
 +        /* compute [8]p */
-+        ge25519 p1, p2, p3;
++        ge25519 ALIGN(16) p1, p2, p3;
 +        ge25519_double(&p1,&p);
 +        ge25519_double(&p2,&p1);
 +        ge25519_double(&p3,&p2);
 +
-+        /* What about this?
-+         * ge25519 p1;
-+         * ge25519_double(&p1,&p);
-+         * ge25519_double(&p,&p1);
-+         * ge25519_double(&p1,&p);
-+        */
-+
 +        if (!ge25519_is_neutral_vartime(&p3)) {
- 			ret |= 2;
- 
- 			fallback:
- 			for (i = 0; i < batchsize; i++) {
- 				valid[i] = ED25519_FN(ed25519_sign_open) (m[i], mlen[i], pk[i], RS[i]) ? 0 : 1;
+@@ -255,0 +342 @@
 +
- 				ret |= (valid[i] ^ 1);
- 			}
- 		}
-diff --git a/src/ed25519-donna/ed25519.c b/src/ed25519-donna/ed25519.c
-index 58a755b8d3..d26fe4f49a 100644
---- a/src/ed25519-donna/ed25519.c
-+++ b/src/ed25519-donna/ed25519.c
-@@ -19,10 +19,30 @@
- #include "ed25519-randombytes.h"
- #include "ed25519-hash.h"
- 
-+/*
-+ * MC: Checks if it is identity or not
-+ */
-+unsigned char batch_point_buffer[3][32];
+diff -U0 src/ed25519-donna.orig/ed25519-donna-impl-base.h src/ed25519-donna/ed25519-donna-impl-base.h
+--- src/ed25519-donna.orig/ed25519-donna-impl-base.h	2024-01-17 11:01:01
++++ src/ed25519-donna/ed25519-donna-impl-base.h	2024-01-23 12:56:11
+@@ -291,0 +292 @@
++    ge25519_p1p1_to_full(r, &t);
+diff -U0 src/ed25519-donna.orig/ed25519-donna-impl-sse2.h src/ed25519-donna/ed25519-donna-impl-sse2.h
+--- src/ed25519-donna.orig/ed25519-donna-impl-sse2.h	2024-01-17 11:01:01
++++ src/ed25519-donna/ed25519-donna-impl-sse2.h	2024-01-23 12:56:32
+@@ -322,0 +323 @@
++    ge25519_p1p1_to_full(r, &t);
+diff -U0 src/ed25519-donna.orig/ed25519.c src/ed25519-donna/ed25519.c
+--- src/ed25519-donna.orig/ed25519.c	2024-01-17 11:01:01
++++ src/ed25519-donna/ed25519.c	2024-01-25 17:09:07
+@@ -21,0 +22 @@
 +
-+static int
-+ge25519_is_neutral_vartime2(const ge25519 *p) {
-+    static const unsigned char zero[32] = {0};
-+    unsigned char point_buffer[3][32];
-+    curve25519_contract(point_buffer[0], p->x);
-+    curve25519_contract(point_buffer[1], p->y);
-+    curve25519_contract(point_buffer[2], p->z);
-+    memcpy(batch_point_buffer[1], point_buffer[1], 32);
-+    return (memcmp(point_buffer[0], zero, 32) == 0) && (memcmp(point_buffer[1], point_buffer[2], 32) == 0);
-+}
-+
- /*
- 	Generates a (extsk[0..31]) and aExt (extsk[32..63])
- */
- 
+@@ -25,0 +27,4 @@
 +
 +
 +
 +
- DONNA_INLINE static void
- ed25519_extsk(hash_512bits extsk, const ed25519_secret_key sk) {
- 	ed25519_hash(extsk, sk, 32);
-@@ -89,9 +109,33 @@ ED25519_FN(ed25519_sign) (const unsigned char *m, size_t mlen, const ed25519_sec
- 	/* S = (r + H(R,A,m)a) mod L */	
- 	contract256_modm(RS + 32, S);
- }
+@@ -92 +96,0 @@
 -
- int
- ED25519_FN(ed25519_sign_open) (const unsigned char *m, size_t mlen, const ed25519_public_key pk, const ed25519_signature RS) {
+@@ -95,4 +99,4 @@
+-	ge25519 ALIGN(16) R, A;
+-	hash_512bits hash;
+-	bignum256modm hram, S;
+-	unsigned char checkR[32];
++    ge25519 ALIGN(16) R, A;
++    hash_512bits hash;
++    bignum256modm hram, S;
++    unsigned char checkR[32];
+@@ -100,2 +104,2 @@
+-	if ((RS[63] & 224) || !ge25519_unpack_negative_vartime(&A, pk))
+-		return -1;
++    if ((RS[63] & 224) || !ge25519_unpack_negative_vartime(&A, pk))
++        return -1;
+@@ -103,3 +107,3 @@
+-	/* hram = H(R,A,m) */
+-	ed25519_hram(hash, RS, pk, m, mlen);
+-	expand256_modm(hram, hash, 64);
++    /* hram = H(R,A,m) */
++    ed25519_hram(hash, RS, pk, m, mlen);
++    expand256_modm(hram, hash, 64);
+@@ -107,2 +111,2 @@
+-	/* S */
+-	expand256_modm(S, RS + 32, 32);
++    /* S */
++    expand256_modm(S, RS + 32, 32);
+@@ -110,3 +114,3 @@
+-	/* SB - H(R,A,m)A */
+-	ge25519_double_scalarmult_vartime(&R, &A, hram, S);
+-	ge25519_pack(checkR, &R);
++    /* SB - H(R,A,m)A */
++    ge25519_double_scalarmult_vartime(&R, &A, hram, S);
++    ge25519_pack(checkR, &R);
+@@ -114,2 +118,2 @@
+-	/* check that R = SB - H(R,A,m)A */
+-	return ed25519_verify(RS, checkR, 32) ? 0 : -1;
++    /* check that R = SB - H(R,A,m)A */
++    return ed25519_verify(RS, checkR, 32) ? 0 : -1;
+@@ -117 +120,0 @@
+-
+@@ -118,0 +122,49 @@
++
++int
++ED25519_FN(ed25519_sign_open_cofactored) (const unsigned char *m, size_t mlen, const ed25519_public_key pk, const ed25519_signature RS) {
 +    ge25519 ALIGN(16) R, A;
 +    hash_512bits hash;
 +    bignum256modm hram, S;
@@ -203,74 +185,43 @@ index 58a755b8d3..d26fe4f49a 100644
 +
 +    /* SB - H(R,A,m)A */
 +    ge25519_double_scalarmult_vartime(&R, &A, hram, S);
-+    ge25519_pack(checkR, &R);
-+
-+    /* check that R = SB - H(R,A,m)A */
-+    return ed25519_verify(RS, checkR, 32) ? 0 : -1;
-+}
-+
-+int
-+ED25519_FN(ed25519_sign_open_cofactored) (const unsigned char *m, size_t mlen, const ed25519_public_key pk, const ed25519_signature RS) {
- 	ge25519 ALIGN(16) R, A;
- 	hash_512bits hash;
- 	bignum256modm hram, S;
-@@ -109,14 +153,38 @@ ED25519_FN(ed25519_sign_open) (const unsigned char *m, size_t mlen, const ed2551
- 
- 	/* SB - H(R,A,m)A */
- 	ge25519_double_scalarmult_vartime(&R, &A, hram, S);
--	ge25519_pack(checkR, &R);
- 
--	/* check that R = SB - H(R,A,m)A */
--	return ed25519_verify(RS, checkR, 32) ? 0 : -1;
-+    ge25519_pack(checkR, &R);
-+
-+    ge25519_unpack_negative_vartime(&R, checkR);
 +
 +    unsigned char Rprime[32];
 +    for (int i = 0; i < 32; i++) {
 +        Rprime[i] = RS[i];
 +    }
-+    ge25519 Rprimepoint;
++    ge25519 ALIGN(16) Rprimepoint;
++
++    Rprime[31] = (Rprime[31] + 128) % 256;
 +    ge25519_unpack_negative_vartime(&Rprimepoint, Rprime);
-+    ge25519 Rprimepointneg;
++    ge25519 ALIGN(16) Rprimepointneg;
 +
 +    curve25519_neg(Rprimepointneg.x, Rprimepoint.x);
 +    curve25519_copy(Rprimepointneg.y, Rprimepoint.y);
 +    curve25519_neg(Rprimepointneg.t, Rprimepoint.t);
 +    curve25519_copy(Rprimepointneg.z, Rprimepoint.z);
 +
-+    ge25519 result, result1, result2, result3;
-+    // result = R - sB - H(R,A,m)A
++    ge25519 ALIGN(16) result, result1, result2, result3;
++    // result = sB - H(R,A,m)A - RS
 +    ge25519_add(&result,&R,&Rprimepointneg);
 +
 +    ge25519_double(&result1,&result);
 +    ge25519_double(&result2,&result1);
 +    ge25519_double(&result3,&result2);
 +
-+    return ge25519_is_neutral_vartime2(&result3) ? 0 : -1;
++    return ge25519_is_neutral_vartime(&result3) ? 0 : -1;
 +
- }
- 
--#include "ed25519-donna-batchverify.h"
- 
-+#include "ed25519-donna-batchverify.h"
- /*
- 	Fast Curve25519 basepoint scalar multiplication
- */
-diff --git a/src/ed25519-donna/ed25519.h b/src/ed25519-donna/ed25519.h
-index dc86675cd1..7f3209f7d4 100644
---- a/src/ed25519-donna/ed25519.h
-+++ b/src/ed25519-donna/ed25519.h
-@@ -15,6 +15,12 @@ typedef unsigned char curved25519_key[32];
- 
- void ed25519_publickey(const ed25519_secret_key sk, ed25519_public_key pk);
- int ed25519_sign_open(const unsigned char *m, size_t mlen, const ed25519_public_key pk, const ed25519_signature RS);
++}
++
++
+diff -U0 src/ed25519-donna.orig/ed25519.h src/ed25519-donna/ed25519.h
+--- src/ed25519-donna.orig/ed25519.h	2024-01-17 11:01:01
++++ src/ed25519-donna/ed25519.h	2024-01-17 15:28:22
+@@ -17,0 +18,6 @@
 +
 +
 +int ed25519_sign_open_cofactored(const unsigned char *m, size_t mlen, const ed25519_public_key pk, const ed25519_signature RS);
 +int ed25519_sign_open_batch_cofactored(const unsigned char **m, size_t *mlen, const unsigned char **pk, const unsigned char **RS, size_t num, int *valid);
 +
 +
- void ed25519_sign(const unsigned char *m, size_t mlen, const ed25519_secret_key sk, const ed25519_public_key pk, ed25519_signature RS);
- 
- int ed25519_sign_open_batch(const unsigned char **m, size_t *mlen, const unsigned char **pk, const unsigned char **RS, size_t num, int *valid);
+Common subdirectories: src/ed25519-donna.orig/fuzz and src/ed25519-donna/fuzz

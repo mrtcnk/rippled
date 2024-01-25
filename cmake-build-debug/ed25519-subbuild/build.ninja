@@ -1,0 +1,199 @@
+## This file contains all the build statements describing the
+# compilation DAG.
+
+# =============================================================================
+# Write statements declared in CMakeLists.txt:
+# 
+# Which is the root file.
+# =============================================================================
+
+# =============================================================================
+# Project: ed25519-populate
+# Configurations: 
+# =============================================================================
+
+#############################################
+# Minimal version of Ninja required by this file
+
+ninja_required_version = 1.5
+
+# =============================================================================
+# Include auxiliary files.
+
+
+#############################################
+# Include rules file.
+
+include CMakeFiles/rules.ninja
+
+# =============================================================================
+
+#############################################
+# Logical path to working directory; prefix for absolute paths.
+
+cmake_ninja_workdir = /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/
+
+#############################################
+# Utility command for ed25519-populate
+
+build ed25519-populate: phony CMakeFiles/ed25519-populate CMakeFiles/ed25519-populate-complete ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-done ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-build ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-configure ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-download ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-install ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-mkdir ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-patch ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-test ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-update
+
+
+#############################################
+# Utility command for edit_cache
+
+build CMakeFiles/edit_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+  DESC = No interactive CMake dialog available...
+  restat = 1
+
+build edit_cache: phony CMakeFiles/edit_cache.util
+
+
+#############################################
+# Utility command for rebuild_cache
+
+build CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake --regenerate-during-build -S/Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild -B/Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild
+  DESC = Running CMake to regenerate build system...
+  pool = console
+  restat = 1
+
+build rebuild_cache: phony CMakeFiles/rebuild_cache.util
+
+
+#############################################
+# Phony custom command for CMakeFiles/ed25519-populate
+
+build CMakeFiles/ed25519-populate | ${cmake_ninja_workdir}CMakeFiles/ed25519-populate: phony CMakeFiles/ed25519-populate-complete
+
+
+#############################################
+# Custom command for CMakeFiles/ed25519-populate-complete
+
+build CMakeFiles/ed25519-populate-complete ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-done | ${cmake_ninja_workdir}CMakeFiles/ed25519-populate-complete ${cmake_ninja_workdir}ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-done: CUSTOM_COMMAND ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-install ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-mkdir ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-download ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-update ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-patch ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-configure ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-build ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-install ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-test
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E make_directory /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/CMakeFiles && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E touch /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/CMakeFiles/ed25519-populate-complete && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E touch /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-done
+  DESC = Completed 'ed25519-populate'
+  restat = 1
+
+
+#############################################
+# Custom command for ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-build
+
+build ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-build | ${cmake_ninja_workdir}ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-build: CUSTOM_COMMAND ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-configure
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-build && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo_append && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E touch /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-build
+  DESC = No build step for 'ed25519-populate'
+  restat = 1
+
+
+#############################################
+# Custom command for ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-configure
+
+build ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-configure | ${cmake_ninja_workdir}ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-configure: CUSTOM_COMMAND ed25519-populate-prefix/tmp/ed25519-populate-cfgcmd.txt ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-patch
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-build && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo_append && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E touch /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-configure
+  DESC = No configure step for 'ed25519-populate'
+  restat = 1
+
+
+#############################################
+# Custom command for ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-download
+
+build ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-download | ${cmake_ninja_workdir}ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-download: CUSTOM_COMMAND ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-urlinfo.txt ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-mkdir
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E rm -rf /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src/ed25519-donna && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E copy_directory /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src/ed25519-donna.orig /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src/ed25519-donna && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E touch /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-download
+  DESC = Performing download step (DIR copy) for 'ed25519-populate'
+  pool = console
+  restat = 1
+
+
+#############################################
+# Custom command for ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-install
+
+build ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-install | ${cmake_ninja_workdir}ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-install: CUSTOM_COMMAND ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-build
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-build && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo_append && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E touch /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-install
+  DESC = No install step for 'ed25519-populate'
+  restat = 1
+
+
+#############################################
+# Custom command for ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-mkdir
+
+build ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-mkdir | ${cmake_ninja_workdir}ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-mkdir: CUSTOM_COMMAND
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -P /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/ed25519-populate-prefix/tmp/ed25519-populate-mkdirs.cmake && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E touch /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-mkdir
+  DESC = Creating directories for 'ed25519-populate'
+  restat = 1
+
+
+#############################################
+# Custom command for ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-patch
+
+build ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-patch | ${cmake_ninja_workdir}ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-patch: CUSTOM_COMMAND ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-update
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src/ed25519-donna && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E chdir ../.. git apply -p1 /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/src/ed25519-donna.patch && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E touch /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-patch
+  DESC = Performing patch step for 'ed25519-populate'
+  pool = console
+  restat = 1
+
+
+#############################################
+# Custom command for ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-test
+
+build ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-test | ${cmake_ninja_workdir}ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-test: CUSTOM_COMMAND ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-install
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-build && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo_append && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E touch /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-test
+  DESC = No test step for 'ed25519-populate'
+  restat = 1
+
+
+#############################################
+# Custom command for ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-update
+
+build ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-update | ${cmake_ninja_workdir}ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-update: CUSTOM_COMMAND ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-download
+  COMMAND = cd /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo_append && /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E touch /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild/ed25519-populate-prefix/src/ed25519-populate-stamp/ed25519-populate-update
+  DESC = No update step for 'ed25519-populate'
+  pool = console
+  restat = 1
+
+# =============================================================================
+# Target aliases.
+
+# =============================================================================
+# Folder targets.
+
+# =============================================================================
+
+#############################################
+# Folder: /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild
+
+build all: phony ed25519-populate
+
+# =============================================================================
+# Built-in targets
+
+
+#############################################
+# Re-run CMake if any of its inputs changed.
+
+build build.ninja: RERUN_CMAKE | /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeDetermineSystem.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeGenericSystem.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeInitializeConfigs.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeSystem.cmake.in /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeSystemSpecificInformation.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeSystemSpecificInitialize.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/ExternalProject.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/ExternalProject/RepositoryInfo.txt.in /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/ExternalProject/cfgcmd.txt.in /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/ExternalProject/mkdirs.cmake.in /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/Platform/Darwin-Initialize.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/Platform/Darwin.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/Platform/UnixPaths.cmake CMakeCache.txt CMakeFiles/3.23.2/CMakeSystem.cmake CMakeLists.txt ed25519-populate-prefix/tmp/ed25519-populate-mkdirs.cmake
+  pool = console
+
+
+#############################################
+# A missing CMake input file is not an error.
+
+build /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeDetermineSystem.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeGenericSystem.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeInitializeConfigs.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeSystem.cmake.in /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeSystemSpecificInformation.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/CMakeSystemSpecificInitialize.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/ExternalProject.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/ExternalProject/RepositoryInfo.txt.in /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/ExternalProject/cfgcmd.txt.in /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/ExternalProject/mkdirs.cmake.in /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/Platform/Darwin-Initialize.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/Platform/Darwin.cmake /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/Platform/UnixPaths.cmake CMakeCache.txt CMakeFiles/3.23.2/CMakeSystem.cmake CMakeLists.txt ed25519-populate-prefix/tmp/ed25519-populate-mkdirs.cmake: phony
+
+
+#############################################
+# Clean all the built files.
+
+build clean: CLEAN
+
+
+#############################################
+# Print all primary targets available.
+
+build help: HELP
+
+
+#############################################
+# Make the all target the default.
+
+default all

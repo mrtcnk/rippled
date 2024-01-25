@@ -1,0 +1,54 @@
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/Applications/CLion.app/Contents/bin/ninja/mac/ninja -G Ninja -S /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled -B /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug
+CMake Error at CMakeLists.txt:15 (cmake_policy):
+  Policy "CMP0135" is not known to this version of CMake.
+
+
+-- Populating ed25519
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/ed25519-subbuild
+[1/9] Creating directories for 'ed25519-populate'
+[1/9] Performing download step (DIR copy) for 'ed25519-populate'
+[2/9] No update step for 'ed25519-populate'
+[3/9] Performing patch step for 'ed25519-populate'
+[5/9] No configure step for 'ed25519-populate'
+[6/9] No build step for 'ed25519-populate'
+[7/9] No install step for 'ed25519-populate'
+[8/9] No test step for 'ed25519-populate'
+[9/9] Completed 'ed25519-populate'
+-- The C compiler identification is AppleClang 15.0.0.15000100
+-- The CXX compiler identification is AppleClang 15.0.0.15000100
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /Library/Developer/CommandLineTools/usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /Library/Developer/CommandLineTools/usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Git: /usr/bin/git (found version "2.39.3 (Apple Git-145)") 
+-- gch:1cb82e8e4640b72736a4776781ab34857167dc69
+-- Using 5 cores for ExternalProject builds.
+-- rippled version: 2.0.0-rc6
+-- docker NOT found -- won't be able to build containers for packaging
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+CMake Error at /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/FindPackageHandleStandardArgs.cmake:230 (message):
+  Could NOT find Boost (missing: Boost_INCLUDE_DIR chrono container context
+  coroutine date_time filesystem json program_options regex system thread)
+  (Required is at least version "1.82")
+Call Stack (most recent call first):
+  /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/FindPackageHandleStandardArgs.cmake:594 (_FPHSA_FAILURE_MESSAGE)
+  /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.23/Modules/FindBoost.cmake:2376 (find_package_handle_standard_args)
+  Builds/CMake/deps/Boost.cmake:1 (find_package)
+  CMakeLists.txt:82 (include)
+
+
+-- Configuring incomplete, errors occurred!
+See also "/Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "/Users/mcenk/Documents/Projects/rippled-cofactored-patch/rippled/cmake-build-debug/CMakeFiles/CMakeError.log".
