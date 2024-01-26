@@ -1,6 +1,6 @@
 diff -U0 src/ed25519-donna.orig/ed25519-donna-batchverify.h src/ed25519-donna/ed25519-donna-batchverify.h
 --- src/ed25519-donna.orig/ed25519-donna-batchverify.h	2024-01-17 11:01:01
-+++ src/ed25519-donna/ed25519-donna-batchverify.h	2024-01-25 14:18:39
++++ src/ed25519-donna/ed25519-donna-batchverify.h	2024-01-26 14:14:05
 @@ -108 +108,2 @@
 -	const bignum256modm_element_t topbit = ((bignum256modm_element_t)1 << (bignum256modm_bits_per_limb - 1));
 +
@@ -104,17 +104,17 @@ diff -U0 src/ed25519-donna.orig/ed25519-donna-batchverify.h src/ed25519-donna/ed
 +
 diff -U0 src/ed25519-donna.orig/ed25519-donna-impl-base.h src/ed25519-donna/ed25519-donna-impl-base.h
 --- src/ed25519-donna.orig/ed25519-donna-impl-base.h	2024-01-17 11:01:01
-+++ src/ed25519-donna/ed25519-donna-impl-base.h	2024-01-23 12:56:11
++++ src/ed25519-donna/ed25519-donna-impl-base.h	2024-01-26 14:14:05
 @@ -291,0 +292 @@
 +    ge25519_p1p1_to_full(r, &t);
 diff -U0 src/ed25519-donna.orig/ed25519-donna-impl-sse2.h src/ed25519-donna/ed25519-donna-impl-sse2.h
 --- src/ed25519-donna.orig/ed25519-donna-impl-sse2.h	2024-01-17 11:01:01
-+++ src/ed25519-donna/ed25519-donna-impl-sse2.h	2024-01-23 12:56:32
++++ src/ed25519-donna/ed25519-donna-impl-sse2.h	2024-01-26 14:14:05
 @@ -322,0 +323 @@
 +    ge25519_p1p1_to_full(r, &t);
 diff -U0 src/ed25519-donna.orig/ed25519.c src/ed25519-donna/ed25519.c
 --- src/ed25519-donna.orig/ed25519.c	2024-01-17 11:01:01
-+++ src/ed25519-donna/ed25519.c	2024-01-25 17:09:07
++++ src/ed25519-donna/ed25519.c	2024-01-26 14:14:05
 @@ -21,0 +22 @@
 +
 @@ -25,0 +27,4 @@
@@ -216,7 +216,7 @@ diff -U0 src/ed25519-donna.orig/ed25519.c src/ed25519-donna/ed25519.c
 +
 diff -U0 src/ed25519-donna.orig/ed25519.h src/ed25519-donna/ed25519.h
 --- src/ed25519-donna.orig/ed25519.h	2024-01-17 11:01:01
-+++ src/ed25519-donna/ed25519.h	2024-01-17 15:28:22
++++ src/ed25519-donna/ed25519.h	2024-01-26 14:14:05
 @@ -17,0 +18,6 @@
 +
 +
